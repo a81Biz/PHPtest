@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  apache_web:
+    networks:
+      - my_custom_network
+    build:
+      context: ./apache
+      dockerfile: Dockerfile
+    container_name: apache_web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./public:/var/www/html
+      - ./certs:/certs
+    environment:
+      - APACHE_LOG_DIR=/var/log/apache2
+    depends_on:
+      - mysql_db
+
+  sftpgo:
+    build:
+      context: ./sftpgo
+    container_name: sftpgo
+    volumes:
+      - ./sftpgo_data:/var/lib/sftpgo/data
+      - ./public:/var/lib/sftpgo/public
+      - ./sftpgo/sftpgo.json:/etc/sftpgo/sftpgo.json
+    environment:
+      - SFTPGO_CONFIG_FILE=/etc/sftpgo/sftpgo.json
+    ports:
+      - "2022:2022"
+      - "8080:8080"
+      - "21:21"
+      - "50000-50100:50000-50100"
+    networks:
+      - my_custom_network
+    restart: unless-stopped
+
+  mysql_db:
+    image: mysql:8.0
+    container_name: mysql_db
+    networks:
+      - my_custom_network
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: mysql_database
+      MYSQL_USER: mysql_user
+      MYSQL_PASSWORD: 123
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+networks:
+  my_custom_network:
+    driver: bridge
